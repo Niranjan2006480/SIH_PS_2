@@ -11,7 +11,7 @@
 
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Check, FileDown, MessageCircle, Loader2 } from "lucide-react";
+import { ArrowRight, Check, FileDown, Loader2, BarChart3, Lightbulb, ShieldCheck, DollarSign } from "lucide-react";
 
 import type { AnalysisResponse, LocationResult } from "@/lib/api-client";
 import { api } from "@/lib/api-client";
@@ -20,6 +20,8 @@ import { LocationSearch } from "@/components/form/LocationSearch";
 import { ReportOverview } from "@/components/report/ReportOverview";
 import { SwotGrid, RiskRadar } from "@/components/report/SwotRisk";
 import { FinancePlan } from "@/components/report/financial/FinancePlan";
+import { CompetitorSection, PricingSection } from "@/components/report/CompetitorPricing";
+import { WorkingCapitalPlanner, RecommendationCard } from "@/components/report/WorkingCapitalRec";
 import { SectionKicker, Metric } from "@/components/shared/primitives";
 import { Button } from "@/components/ui/button";
 
@@ -187,6 +189,13 @@ function Landing({ onStart }: { onStart: () => void }) {
               >
                 Analyze My Business <ArrowRight size={16} className="ml-2" />
               </Button>
+              <Button
+                variant="outline"
+                onClick={onStart}
+                className="h-12 px-8 text-base border-line"
+              >
+                Try Demo
+              </Button>
             </div>
             <div className="mt-8 flex gap-6 font-mono text-[10px] uppercase tracking-wider text-ink/40">
               <span>AI-powered</span>
@@ -199,25 +208,163 @@ function Landing({ onStart }: { onStart: () => void }) {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/50">How it works</p>
-        <h2 className="mt-3 font-display text-3xl font-bold">Four steps to your business plan.</h2>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { step: "01", title: "Tell Us About You", desc: "Enter your village, district, and available capital." },
-            { step: "02", title: "AI Studies Your Market", desc: "We analyze local demand, competition, pricing, and infrastructure." },
-            { step: "03", title: "Calculate Your Financing", desc: "Get scheme eligibility, loan amount, EMI, and repayment schedule." },
-            { step: "04", title: "Get Your Blueprint", desc: "Receive a clear feasibility report you can act on immediately." },
-          ].map((item) => (
-            <div key={item.step} className="border border-line bg-paper p-5 paper-shadow">
-              <div className="font-display text-4xl font-bold text-moss/30">{item.step}</div>
-              <h3 className="mt-3 font-display text-lg font-semibold">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink/60">{item.desc}</p>
-            </div>
-          ))}
+      {/* Problem section */}
+      <section className="border-b border-line bg-ink">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-cream/40">The problem</p>
+          <h2 className="mt-3 font-display text-3xl font-bold text-cream">
+            A Good Business Idea Isn't Enough.
+          </h2>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: <Lightbulb size={20} />,
+                title: "Guesswork",
+                desc: "Entrepreneurs choose businesses based on anecdotal success instead of actual local demand.",
+              },
+              {
+                icon: <DollarSign size={20} />,
+                title: "Financial Confusion",
+                desc: "Many first-time entrepreneurs don't understand margin contribution, loan amounts, or repayment schedules.",
+              },
+              {
+                icon: <BarChart3 size={20} />,
+                title: "Local Blind Spots",
+                desc: "A business that works in one village may fail in another because of competition, demand, or supply constraints.",
+              },
+              {
+                icon: <ShieldCheck size={20} />,
+                title: "No Guidance",
+                desc: "Traditional business advice is often generic instead of being tailored to a specific village or block.",
+              },
+            ].map((item) => (
+              <div key={item.title} className="border border-cream/10 bg-cream/5 p-5">
+                <div className="text-moss">{item.icon}</div>
+                <h3 className="mt-3 font-display text-lg font-semibold text-cream">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-cream/55">{item.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
+
+      {/* How it works */}
+      <section className="border-b border-line">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/50">How it works</p>
+          <h2 className="mt-3 font-display text-3xl font-bold">Four steps to your business plan.</h2>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { step: "01", title: "Tell Us About You", desc: "Enter your village, district, and available capital." },
+              { step: "02", title: "AI Studies Your Market", desc: "We analyze local demand, competition, pricing, and infrastructure." },
+              { step: "03", title: "Calculate Your Financing", desc: "Get scheme eligibility, loan amount, EMI, and repayment schedule." },
+              { step: "04", title: "Get Your Blueprint", desc: "Receive a clear feasibility report you can act on immediately." },
+            ].map((item) => (
+              <div key={item.step} className="border border-line bg-paper p-5 paper-shadow">
+                <div className="font-display text-4xl font-bold text-moss/30">{item.step}</div>
+                <h3 className="mt-3 font-display text-lg font-semibold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink/60">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Product Modules */}
+      <section className="border-b border-line bg-paper">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/50">What you get</p>
+          <h2 className="mt-3 font-display text-3xl font-bold">Two powerful modules, one platform.</h2>
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            <div className="border border-line bg-cream p-6 paper-shadow">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-moss">Module 1</div>
+              <h3 className="mt-2 font-display text-2xl font-bold">Hyper-Local Feasibility Report</h3>
+              <p className="mt-3 text-sm leading-relaxed text-ink/65">
+                AI-powered analysis of your specific location using real population data, competitor mapping, and pricing intelligence.
+              </p>
+              <ul className="mt-4 space-y-2">
+                {["Market reach & population analysis", "Opportunity score & signals", "SWOT analysis", "Risk radar", "Competitor mapping", "Pricing intelligence"].map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-ink/70">
+                    <Check size={12} className="text-moss shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="border border-line bg-cream p-6 paper-shadow">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-ochre">Module 2</div>
+              <h3 className="mt-2 font-display text-2xl font-bold">Smart Financial Roadmap</h3>
+              <p className="mt-3 text-sm leading-relaxed text-ink/65">
+                Automatic scheme selection, EMI calculation, and a full repayment schedule — no manual calculations required.
+              </p>
+              <ul className="mt-4 space-y-2">
+                {["Scheme auto-selection (Micro Finance / Term Loan)", "Project cost derivation", "Interactive EMI calculator", "Monthly & quarterly repayment schedule", "Working capital planner", "Business plan summary PDF"].map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-ink/70">
+                    <Check size={12} className="text-ochre shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Impact section */}
+      <section className="border-b border-line">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/50">Impact</p>
+          <h2 className="mt-3 font-display text-3xl font-bold">From Capital Access to Business Success.</h2>
+          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            {[
+              { metric: "Better Decisions", detail: "Data-backed business selection instead of guesswork", icon: <BarChart3 size={22} className="text-moss" /> },
+              { metric: "Financial Clarity", detail: "Understand your contribution, borrowing, and full repayment", icon: <DollarSign size={22} className="text-ochre" /> },
+              { metric: "Local Empowerment", detail: "Enable grassroots entrepreneurs to build sustainable enterprises", icon: <ShieldCheck size={22} className="text-moss" /> },
+            ].map((item) => (
+              <div key={item.metric} className="border border-line bg-paper p-6 paper-shadow">
+                {item.icon}
+                <h3 className="mt-3 font-display text-xl font-bold">{item.metric}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink/60">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="ledger-grid border-b border-line">
+        <div className="mx-auto max-w-4xl px-6 py-20 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/50">Get started</p>
+          <h2 className="mt-4 font-display text-4xl font-bold sm:text-5xl">
+            Don't Start With a Guess.{" "}
+            <span className="text-moss">Start With a Plan.</span>
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink/65">
+            Analyze your local opportunity, understand your financing and make a smarter business decision.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Button
+              onClick={onStart}
+              className="bg-moss text-cream hover:bg-moss/90 h-12 px-10 text-base"
+            >
+              Analyze My Business <ArrowRight size={16} className="ml-2" />
+            </Button>
+          </div>
+          <p className="mt-6 font-mono text-[10px] text-ink/35">
+            AI Estimate · Based on available local data · Verify before applying
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-line bg-ink">
+        <div className="mx-auto max-w-6xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="font-display font-bold text-cream">UdyamAI</p>
+          <p className="font-mono text-[10px] text-cream/35 text-center">
+            AI-powered · Local-first · Financially Transparent · GramBiz AI provides informational assistance only.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -473,13 +620,17 @@ function Loader({ stages, currentStage }: { stages: string[]; currentStage: numb
 // ─── Report ────────────────────────────────────────────────────────────────────
 
 function Report({ report, onNew }: { report: AnalysisResponse; onNew: () => void }) {
-  const [activeTab, setActiveTab] = useState<"overview" | "swot" | "risks" | "financial">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "swot" | "risks" | "financial" | "competitor" | "pricing" | "working_capital" | "recommendation">("overview");
 
   const tabs: { key: typeof activeTab; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "swot", label: "SWOT" },
     { key: "risks", label: "Risk Radar" },
+    { key: "competitor", label: "Competitors" },
+    { key: "pricing", label: "Pricing" },
     { key: "financial", label: "Financial Plan" },
+    { key: "working_capital", label: "Working Capital" },
+    { key: "recommendation", label: "Recommendation" },
   ];
 
   return (
@@ -513,7 +664,7 @@ function Report({ report, onNew }: { report: AnalysisResponse; onNew: () => void
           </div>
 
           {/* Tabs */}
-          <div className="mt-3 flex gap-0 border-t border-line pt-2">
+          <div className="mt-3 flex gap-0 border-t border-line pt-2 overflow-x-auto whitespace-nowrap scrollbar-none">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
@@ -536,7 +687,11 @@ function Report({ report, onNew }: { report: AnalysisResponse; onNew: () => void
         {activeTab === "overview" && <ReportOverview report={report} />}
         {activeTab === "swot" && <SwotGrid swot={report.swot} />}
         {activeTab === "risks" && <RiskRadar risks={report.risks} />}
+        {activeTab === "competitor" && <CompetitorSection report={report} />}
+        {activeTab === "pricing" && <PricingSection report={report} />}
         {activeTab === "financial" && <FinancePlan report={report} />}
+        {activeTab === "working_capital" && <WorkingCapitalPlanner report={report} />}
+        {activeTab === "recommendation" && <RecommendationCard report={report} />}
       </div>
     </div>
   );
