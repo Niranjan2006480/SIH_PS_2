@@ -1,0 +1,34 @@
+﻿# UdyamAI Local Services
+# PostgreSQL is managed by Supabase. Only Qdrant + Redis run locally.
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: udyamai_qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./volumes/qdrant:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    networks:
+      - udyamai-net
+
+  redis:
+    image: redis:7
+    container_name: udyamai_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./volumes/redis:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - udyamai-net
+
+networks:
+  udyamai-net:
+    driver: bridge

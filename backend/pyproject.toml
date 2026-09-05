@@ -1,0 +1,66 @@
+﻿[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "udyamai-backend"
+version = "1.0.0"
+description = "UdyamAI - AI-Driven Rural Business Advisory Backend"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-multipart>=0.0.12",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "psycopg2-binary>=2.9.10",
+    "geoalchemy2>=0.16.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "python-dotenv>=1.0.1",
+    "google-generativeai>=0.8.3",
+    "langchain>=0.3.7",
+    "langchain-google-genai>=2.0.4",
+    "langchain-community>=0.3.7",
+    "qdrant-client>=1.12.0",
+    "ollama>=0.4.0",
+    "redis[hiredis]>=5.2.0",
+    "geopandas>=1.0.1",
+    "shapely>=2.0.6",
+    "pandas>=2.2.3",
+    "openpyxl>=3.1.5",
+    "xlrd>=2.0.1",
+    "httpx>=0.28.0",
+    "fpdf2>=2.8.1",
+    "rapidfuzz>=3.10.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "tenacity>=9.0.0",
+    "structlog>=24.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.28.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true

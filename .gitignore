@@ -1,0 +1,94 @@
+# ============================================================
+# UdyamAI Root .gitignore
+# ============================================================
+
+# --- Secrets / Environment ---------------------------------
+.env
+.env.local
+.env.production
+*.pem
+*.key
+secrets/
+
+# --- Python -----------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+env/
+ENV/
+.tox/
+.nox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+
+# --- Node / Frontend --------------------------------------
+node_modules/
+dist/
+dist-ssr/
+.output/
+.vinxi/
+.tanstack/
+.nitro/
+*.local
+.wrangler/
+.dev.vars
+
+# --- Docker Volumes ----------------------------------------
+volumes/
+*.log
+
+# --- IDE / OS ---------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+
+# --- Datasets (large files — do not commit to Git) ---------
+datasets/*.csv
+datasets/*.xlsx
+datasets/*.xls
+datasets/*.pdf
+datasets/**/*.shp
+datasets/**/*.dbf
+datasets/**/*.shx
+datasets/**/*.prj
+
+# --- Generated / Cache ------------------------------------
+*.pyc
+*.pyo
+__pycache__/
+.cache/
