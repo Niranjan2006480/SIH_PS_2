@@ -1,0 +1,5 @@
+- [x] Establish GramBiz visual tokens and global styles
+- [x] Build the responsive landing page and entry flow
+- [x] Build the multi-step analysis form with demo mode
+- [x] Build report, financial plan, repayment, working capital, and summary views
+- [x] Verify routes, responsive layout, and build health

@@ -1,0 +1,101 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-note: var(--note);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-moss: var(--moss);
+  --color-ochre: var(--ochre);
+  --color-clay: var(--clay);
+  --color-cream: var(--cream);
+  --color-line: var(--line);
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.957 0.022 91);
+  --foreground: oklch(0.25 0.025 85);
+  --card: oklch(0.985 0.012 90);
+  --card-foreground: oklch(0.25 0.025 85);
+  --popover: oklch(0.985 0.012 90);
+  --popover-foreground: oklch(0.25 0.025 85);
+  --primary: oklch(0.39 0.09 118);
+  --primary-foreground: oklch(0.97 0.02 91);
+  --secondary: oklch(0.91 0.04 92);
+  --secondary-foreground: oklch(0.25 0.025 85);
+  --muted: oklch(0.91 0.04 92);
+  --muted-foreground: oklch(0.47 0.035 85);
+  --accent: oklch(0.88 0.075 82);
+  --accent-foreground: oklch(0.25 0.025 85);
+  --destructive: oklch(0.52 0.13 35);
+  --destructive-foreground: oklch(0.97 0.02 91);
+  --border: oklch(0.76 0.065 88);
+  --input: oklch(0.76 0.065 88);
+  --ring: oklch(0.39 0.09 118);
+  --note: oklch(0.94 0.035 91);
+  --paper: oklch(0.88 0.055 91);
+  --ink: oklch(0.25 0.025 85);
+  --moss: oklch(0.39 0.09 118);
+  --ochre: oklch(0.62 0.12 78);
+  --clay: oklch(0.52 0.13 35);
+  --cream: oklch(0.985 0.012 90);
+  --line: oklch(0.76 0.065 88);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; }
+  body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-body); }
+  button, input, textarea, select { font: inherit; }
+}
+
+@utility ledger-grid {
+  background-image: linear-gradient(to right, color-mix(in oklab, var(--line) 32%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--line) 32%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+@utility paper-shadow { box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 8%, transparent), 0 12px 28px color-mix(in oklab, var(--ink) 6%, transparent); }
+
+@utility stamp {
+  border: 1px solid color-mix(in oklab, var(--clay) 65%, transparent);
+  color: var(--color-clay);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+
+@keyframes ledger-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ledger-draw { from { transform: scaleX(0); transform-origin: left; } to { transform: scaleX(1); transform-origin: left; } }
+.ledger-rise { animation: ledger-rise 500ms ease-out both; }
+.ledger-draw { animation: ledger-draw 850ms ease-out both; }
