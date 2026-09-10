@@ -4,7 +4,6 @@ Mirrors the schema.sql geography layer exactly.
 """
 
 import uuid
-from datetime import datetime
 
 from geoalchemy2 import Geometry
 from sqlalchemy import Boolean, Column, DateTime, Double, ForeignKey, String, Text, func

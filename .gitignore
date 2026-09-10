@@ -77,7 +77,7 @@ volumes/
 *.sw?
 Thumbs.db
 
-# --- Datasets (large files — do not commit to Git) ---------
+# --- Datasets (large files - do not commit to Git) ---------
 datasets/*.csv
 datasets/*.xlsx
 datasets/*.xls
@@ -91,4 +91,4 @@ datasets/**/*.prj
 *.pyc
 *.pyo
 __pycache__/
-.cache/
+.cache/

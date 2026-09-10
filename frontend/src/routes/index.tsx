@@ -22,6 +22,7 @@ import { SwotGrid, RiskRadar } from "@/components/report/SwotRisk";
 import { FinancePlan } from "@/components/report/financial/FinancePlan";
 import { CompetitorSection, PricingSection } from "@/components/report/CompetitorPricing";
 import { WorkingCapitalPlanner, RecommendationCard } from "@/components/report/WorkingCapitalRec";
+import { DataSourcesFooter } from "@/components/report/DataSourcesFooter";
 import { SectionKicker, Metric } from "@/components/shared/primitives";
 import { Button } from "@/components/ui/button";
 
@@ -654,7 +655,7 @@ function Report({ report, onNew }: { report: AnalysisResponse; onNew: () => void
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => window.open(`/api/v1/analysis/${report.report_id}/pdf`, "_blank")}
+                onClick={() => window.open(api.analysis.pdfUrl(report.report_id), "_blank")}
                 className="border-line"
               >
                 <FileDown size={13} /> PDF
@@ -692,6 +693,9 @@ function Report({ report, onNew }: { report: AnalysisResponse; onNew: () => void
         {activeTab === "financial" && <FinancePlan report={report} />}
         {activeTab === "working_capital" && <WorkingCapitalPlanner report={report} />}
         {activeTab === "recommendation" && <RecommendationCard report={report} />}
+
+        {/* Data Sources & Verification Provenance */}
+        <DataSourcesFooter report={report} />
       </div>
     </div>
   );

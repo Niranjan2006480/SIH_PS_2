@@ -2,14 +2,13 @@
 Location Schemas — Request/Response models for location resolution.
 """
 
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
 
 class LocationSearchRequest(BaseModel):
     query: str = Field(..., min_length=2, description="Village/district name to search")
-    state_code: Optional[str] = Field(None, description="Optional 2-digit state code to narrow search")
+    state_code: str | None = Field(None, description="Optional 2-digit state code to narrow search")
     limit: int = Field(10, ge=1, le=50)
 
 
@@ -20,8 +19,8 @@ class VillageResult(BaseModel):
     district_name: str
     state_name: str
     state_code: str
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    latitude: float | None = None
+    longitude: float | None = None
     has_coordinates: bool = False
 
     model_config = {"from_attributes": True}
@@ -42,9 +41,9 @@ class VillageDetail(BaseModel):
     district_name: str
     state_code: str
     state_name: str
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    coordinate_source: Optional[str] = None
+    latitude: float | None = None
+    longitude: float | None = None
+    coordinate_source: str | None = None
     has_coordinates: bool = False
 
     model_config = {"from_attributes": True}

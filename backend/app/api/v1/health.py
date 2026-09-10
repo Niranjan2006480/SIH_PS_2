@@ -3,13 +3,13 @@
 import logging
 
 from fastapi import APIRouter, Depends
+from qdrant_client import AsyncQdrantClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
 from app.cache.report_cache import get_redis
-from qdrant_client import AsyncQdrantClient
 from app.config import get_settings
+from app.database import get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

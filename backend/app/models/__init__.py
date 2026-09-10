@@ -1,7 +1,5 @@
 """ORM Models — export all for Alembic autogeneration."""
 
-from app.models.geography import District, Location, State, Subdistrict, Village
-from app.models.population import PopulationStats, PurchasingPowerBand, StateEconomicProfile
 from app.models.business import (
     Business,
     CategoryConfig,
@@ -9,8 +7,10 @@ from app.models.business import (
     MarketPrice,
     PriceIndex,
 )
-from app.models.scheme import FinancialCalculation, RepaymentScheduleEntry, SchemeRule
+from app.models.geography import District, Location, State, Subdistrict, Village
+from app.models.population import PopulationStats, PurchasingPowerBand, StateEconomicProfile
 from app.models.report import FeasibilityReport, User
+from app.models.scheme import FinancialCalculation, RepaymentScheduleEntry, SchemeRule
 
 __all__ = [
     "State",

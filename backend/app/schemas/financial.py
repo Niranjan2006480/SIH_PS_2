@@ -2,14 +2,14 @@
 Financial Schemas — Request/Response for Module 2 calculations.
 """
 
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
 class FinancialCalculationRequest(BaseModel):
     margin_capital: float = Field(..., gt=0, description="Available margin capital in INR")
-    village_lgd_code: Optional[str] = Field(None)
-    user_id: Optional[str] = Field(None)
+    village_lgd_code: str | None = Field(None)
+    user_id: str | None = Field(None)
 
 
 class RepaymentPeriod(BaseModel):

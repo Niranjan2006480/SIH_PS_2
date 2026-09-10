@@ -6,7 +6,7 @@ Caches feasibility reports and location data to minimize DB + AI calls.
 import hashlib
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import redis.asyncio as aioredis
 
@@ -15,7 +15,7 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-_redis_pool: Optional[aioredis.Redis] = None
+_redis_pool: aioredis.Redis | None = None
 
 
 async def get_redis() -> aioredis.Redis:
@@ -35,9 +35,11 @@ def make_report_cache_key(
     business_category: str,
     margin_capital: float,
     radius_km: int,
+    business_idea: str = "",
 ) -> str:
-    """Deterministic cache key from analysis inputs."""
-    raw = f"{village_lgd_code}:{business_category}:{int(margin_capital)}:{radius_km}"
+    """Deterministic cache key from analysis inputs including specific business idea."""
+    cleaned_idea = (business_idea or "").strip().lower()
+    raw = f"{village_lgd_code}:{business_category}:{int(margin_capital)}:{radius_km}:{cleaned_idea}"
     return f"report:{hashlib.sha256(raw.encode()).hexdigest()[:16]}"
 
 
@@ -46,16 +48,18 @@ def make_input_hash(
     business_category: str,
     margin_capital: float,
     radius_km: int,
+    business_idea: str = "",
 ) -> str:
     """SHA-256 hash stored in DB for deduplication."""
-    raw = f"{village_lgd_code}:{business_category}:{int(margin_capital)}:{radius_km}"
+    cleaned_idea = (business_idea or "").strip().lower()
+    raw = f"{village_lgd_code}:{business_category}:{int(margin_capital)}:{radius_km}:{cleaned_idea}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
 class ReportCache:
     """Report caching layer backed by Redis."""
 
-    async def get(self, cache_key: str) -> Optional[dict[str, Any]]:
+    async def get(self, cache_key: str) -> dict[str, Any] | None:
         try:
             redis = await get_redis()
             data = await redis.get(cache_key)

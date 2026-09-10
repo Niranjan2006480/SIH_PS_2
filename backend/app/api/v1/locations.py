@@ -1,7 +1,6 @@
 """Location API endpoints — search, detail, hierarchy."""
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +17,7 @@ resolver = LocationResolver()
 @router.get("/search", response_model=LocationSearchResponse, tags=["Location"])
 async def search_locations(
     q: str = Query(..., min_length=2, description="Village or district name"),
-    state_code: Optional[str] = Query(None, description="Filter by 2-digit state code"),
+    state_code: str | None = Query(None, description="Filter by 2-digit state code"),
     limit: int = Query(10, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
 ):

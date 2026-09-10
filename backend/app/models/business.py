@@ -4,7 +4,6 @@ Covers: CategoryConfig, DistrictBusinessSummary, Businesses, MarketPrices, Price
 """
 
 import uuid
-from datetime import date, datetime
 
 from geoalchemy2 import Geometry
 from sqlalchemy import (
@@ -21,7 +20,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import relationship
 
 from app.database import Base
 

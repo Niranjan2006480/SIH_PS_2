@@ -5,8 +5,9 @@
 import type { AnalysisResponse } from "@/lib/api-client";
 import { formatINR } from "@/lib/format";
 import { SectionKicker, RiskBadge } from "@/components/shared/primitives";
-import { Target, TrendingUp } from "lucide-react";
+import { Target, TrendingUp, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CompetitorMap } from "./CompetitorMap";
 
 interface Props {
   report: AnalysisResponse;
@@ -23,14 +24,32 @@ export function CompetitorSection({ report }: Props) {
   };
 
   return (
-    <div className="border border-line bg-cream p-5 paper-shadow sm:p-7">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <SectionKicker text="Competitor intelligence" />
-          <h2 className="mt-2 font-display text-2xl font-semibold">Know the field.</h2>
+    <div className="space-y-6">
+      {/* Interactive Map */}
+      <div className="border border-line bg-cream p-5 paper-shadow sm:p-7">
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <SectionKicker text="Geospatial Competitor Mapping" />
+            <h2 className="mt-2 font-display text-2xl font-semibold">Field Radar & Catchment Map</h2>
+            <p className="mt-1 text-xs text-ink/70">
+              Interactive map of {report.village_name} with {report.radius_km} km catchment boundary and competing units.
+            </p>
+          </div>
+          <Map className="shrink-0 text-moss" size={26} />
         </div>
-        <Target className="shrink-0 text-ochre" size={26} />
+
+        <CompetitorMap report={report} />
       </div>
+
+      {/* Intelligence Cards */}
+      <div className="border border-line bg-cream p-5 paper-shadow sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <SectionKicker text="Competitor intelligence" />
+            <h2 className="mt-2 font-display text-2xl font-semibold">Know the field.</h2>
+          </div>
+          <Target className="shrink-0 text-ochre" size={26} />
+        </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         {/* Count card */}
@@ -91,6 +110,7 @@ export function CompetitorSection({ report }: Props) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

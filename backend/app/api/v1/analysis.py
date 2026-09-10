@@ -11,8 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.report import FeasibilityReport
 from app.schemas.analysis import AnalysisRequest, AnalysisResponse
-from app.services.report_composer import ReportComposer
 from app.services.pdf_generator import PDFGenerator
+from app.services.report_composer import ReportComposer
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

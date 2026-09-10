@@ -12,7 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[".env", "../.env"],
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -24,15 +24,15 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
 
     # ── Database (Supabase PostgreSQL) ────────────────────────────────────────
-    database_url: str
+    database_url: str = "postgresql://postgres:postgres@localhost:5432/udyamai"
     supabase_url: str = ""
     supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
     supabase_storage_bucket: str = "reports"
 
     # ── Google Gemini ─────────────────────────────────────────────────────────
-    google_gemini_api_key: str
-    gemini_model: str = "gemini-2.0-flash"
+    google_gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
     gemini_temperature: float = 0.3
     gemini_max_output_tokens: int = 8192
 
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     backend_port: int = 8000
     backend_reload: bool = True
     backend_log_level: str = "info"
-    allowed_origins: str = "http://localhost:5173,http://localhost:3000"
+    allowed_origins: str = "http://localhost:5173,http://localhost:8080,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:8080,http://127.0.0.1:3000"
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

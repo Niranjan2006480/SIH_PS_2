@@ -4,7 +4,6 @@ Each prompt is a structured template that injects real market context data.
 Kept in one place for easy iteration and version control.
 """
 
-from string import Template
 
 
 # ─── Market Analysis Prompt ───────────────────────────────────────────────────
@@ -75,7 +74,16 @@ Generate a JSON response with EXACTLY this structure (no extra keys, no markdown
     "count": <integer>,
     "density": "<Low|Moderate|High>",
     "categories": ["<category 1>", "<category 2>", "<category 3>"],
-    "differentiators": ["<diff 1>", "<diff 2>", "<diff 3>", "<diff 4>"]
+    "differentiators": ["<diff 1>", "<diff 2>", "<diff 3>", "<diff 4>"],
+    "items": [
+      {
+        "name": "<realistic local business/competitor name in this taluka/district>",
+        "category": "<category/type>",
+        "distance_km": <float between 0.8 and $radius_km>,
+        "strength": "<High|Moderate|Emerging>",
+        "offering": "<one sentence on what they sell and their main limitation or strength>"
+      }
+    ]
   },
   "pricing": {
     "low": <float, INR per unit, conservative price>,
@@ -108,10 +116,11 @@ Generate a JSON response with EXACTLY this structure (no extra keys, no markdown
 
 IMPORTANT RULES:
 1. All monetary values in INR (Indian Rupees), no currency symbols in JSON
-2. Be SPECIFIC to this village, district, and business — not generic
-3. Use actual data provided above, not generic assumptions
-4. If commodity price data is unavailable, estimate from regional patterns
-5. Return ONLY valid JSON — no markdown, no explanation text outside the JSON
+2. DEEPLY CUSTOMIZE: Tailor every SWOT bullet, risk factor, market signal, and pricing detail to the user's EXACT Business Idea ("$business_idea") and capital (₹$margin_capital). Never return generic boilerplate.
+3. NEARBY COMPETITORS: Under competitors.items, generate 3 to 6 realistic local competitors located within $radius_km km with plausible local enterprise names, realistic distances, and specific strengths/weaknesses.
+4. Use actual data provided above (population, literacy, deprivation, market distances).
+5. If commodity price data is unavailable, estimate from regional agricultural/trade patterns.
+6. Return ONLY valid JSON — no markdown, no explanation text outside the JSON
 """
 
 

@@ -100,11 +100,22 @@ export interface RiskItem {
   action: string;
 }
 
+export interface CompetitorItem {
+  name: string;
+  category: string;
+  distance_km: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  strength?: "High" | "Moderate" | "Emerging";
+  offering?: string;
+}
+
 export interface CompetitorData {
   count: number;
   density: string;
   categories: string[];
   differentiators: string[];
+  items?: CompetitorItem[];
 }
 
 export interface PricingData {
@@ -145,6 +156,8 @@ export interface AnalysisResponse {
   business_category_display: string;
   margin_capital: number;
   radius_km: number;
+  latitude?: number | null;
+  longitude?: number | null;
   viability_score: number;
   scores: ScoreBreakdown[];
   market: MarketData;

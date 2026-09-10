@@ -7,7 +7,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.scheme import SchemeRule
 from app.schemas.financial import (
     FinancialCalculationRequest,
     FinancialCalculationResponse,

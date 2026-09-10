@@ -2,10 +2,9 @@
 Analysis Schemas — Request/Response for the core AI feasibility analysis.
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
-
 
 # ── Request ───────────────────────────────────────────────────────────────────
 
@@ -50,11 +49,22 @@ class RiskItem(BaseModel):
     action: str
 
 
+class CompetitorItem(BaseModel):
+    name: str
+    category: str
+    distance_km: float
+    latitude: float | None = None
+    longitude: float | None = None
+    strength: Literal["High", "Moderate", "Emerging"] = "Moderate"
+    offering: str = ""
+
+
 class CompetitorData(BaseModel):
     count: int
     density: str
     categories: list[str]
     differentiators: list[str]
+    items: list[CompetitorItem] = []
 
 
 class PricingData(BaseModel):
@@ -102,6 +112,8 @@ class AnalysisResponse(BaseModel):
     business_category_display: str
     margin_capital: float
     radius_km: int
+    latitude: float | None = None
+    longitude: float | None = None
 
     # Module 1 — Business Feasibility
     viability_score: int
@@ -118,13 +130,13 @@ class AnalysisResponse(BaseModel):
     # Module 2 — Financial (included in main response for efficiency)
     project_cost: float
     loan_amount: float
-    scheme_code: Optional[str] = None
-    scheme_name: Optional[str] = None
-    interest_rate: Optional[float] = None
-    tenure_years: Optional[float] = None
-    moratorium_months: Optional[int] = None
-    monthly_emi: Optional[float] = None
-    total_repayment: Optional[float] = None
+    scheme_code: str | None = None
+    scheme_name: str | None = None
+    interest_rate: float | None = None
+    tenure_years: float | None = None
+    moratorium_months: int | None = None
+    monthly_emi: float | None = None
+    total_repayment: float | None = None
 
     # Data source metadata
     data_sources: list[str] = []
