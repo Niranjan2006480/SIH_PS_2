@@ -91,4 +91,6 @@ datasets/**/*.prj
 *.pyc
 *.pyo
 __pycache__/
-.cache/
+.cache/
+
+datasets/Maharashtra_Roads/Road_DRRP2.shp
