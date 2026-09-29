@@ -3,7 +3,18 @@
  * Typed fetch wrapper for all backend endpoints.
  */
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) ?? "http://localhost:8000";
+const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  if (envUrl && envUrl.trim().length > 0) {
+    return envUrl.trim().replace(/\/+$/, "");
+  }
+  if (import.meta.env.PROD) {
+    return "https://udyamai-backend.onrender.com";
+  }
+  return "http://localhost:8000";
+};
+
+const API_BASE = getApiBaseUrl();
 
 class ApiError extends Error {
   constructor(
