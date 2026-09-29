@@ -94,3 +94,6 @@ __pycache__/
 .cache/
 
 datasets/Maharashtra_Roads/Road_DRRP2.shp
+
+.env.backup
+.env.old

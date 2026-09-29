@@ -4,6 +4,7 @@ Handles: scheme selection, EMI calculation, full amortization schedule generatio
 All logic reads from the database scheme_rules table (not hardcoded).
 """
 
+import logging
 import uuid
 
 from sqlalchemy import select
@@ -14,6 +15,43 @@ from app.schemas.financial import (
     FinancialCalculationResponse,
     RepaymentPeriod,
     SchemeResponse,
+)
+
+logger = logging.getLogger(__name__)
+
+# ── SIH PS 26091 Default Scheme Rules ─────────────────────────────────────────
+DEFAULT_MICRO_FINANCE_SCHEME = SchemeRule(
+    scheme_id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
+    scheme_code="NBCFDC_MICRO_FINANCE",
+    scheme_name="NBCFDC Micro Finance Scheme",
+    category="Micro Finance",
+    min_project_cost=0.0,
+    max_project_cost=140000.0,
+    loan_percentage=90.0,
+    max_loan_amount=125000.0,
+    annual_interest_rate=6.5,
+    tenure_months=36,
+    moratorium_months=3,
+    repayment_frequency="monthly",
+    moratorium_interest_policy="paid_separately",
+    version=1,
+)
+
+DEFAULT_TERM_LOAN_SCHEME = SchemeRule(
+    scheme_id=uuid.UUID("00000000-0000-0000-0000-000000000002"),
+    scheme_code="NBCFDC_TERM_LOAN",
+    scheme_name="NBCFDC Term Loan Scheme",
+    category="Term Loan",
+    min_project_cost=140000.01,
+    max_project_cost=5000000.0,
+    loan_percentage=90.0,
+    max_loan_amount=4500000.0,
+    annual_interest_rate=8.0,
+    tenure_months=84,
+    moratorium_months=6,
+    repayment_frequency="monthly",
+    moratorium_interest_policy="paid_separately",
+    version=1,
 )
 
 
@@ -31,20 +69,21 @@ def calculate_emi(
     """
     Standard reducing-balance EMI with moratorium capitalization.
     During moratorium, interest accrues and is capitalized into the principal.
-    EMI is then computed on the inflated principal for the remaining tenure.
+    Total tenure includes moratorium; repayment is over (tenure_months - moratorium_months).
     """
-    if principal <= 0 or annual_rate_pct <= 0 or tenure_months <= 0:
+    repayment_months = tenure_months - moratorium_months
+    if principal <= 0 or annual_rate_pct <= 0 or repayment_months <= 0:
         return 0.0
 
     monthly_rate = annual_rate_pct / 1200
     # Capitalize interest during moratorium
     capitalized_principal = principal * ((1 + monthly_rate) ** moratorium_months)
-    # Standard EMI formula
+    # Standard EMI formula on active repayment tenure
     emi = (
         capitalized_principal
         * monthly_rate
-        * ((1 + monthly_rate) ** tenure_months)
-    ) / (((1 + monthly_rate) ** tenure_months) - 1)
+        * ((1 + monthly_rate) ** repayment_months)
+    ) / (((1 + monthly_rate) ** repayment_months) - 1)
     return round(emi, 2)
 
 
@@ -55,14 +94,14 @@ def build_monthly_schedule(
     moratorium_months: int = 0,
     monthly_emi: float | None = None,
 ) -> list[RepaymentPeriod]:
-    """Generate a full month-by-month amortization schedule."""
+    """Generate a full month-by-month amortization schedule within total tenure."""
     if monthly_emi is None:
         monthly_emi = calculate_emi(principal, annual_rate_pct, tenure_months, moratorium_months)
 
     monthly_rate = annual_rate_pct / 1200
     schedule: list[RepaymentPeriod] = []
     balance = principal
-    total_periods = moratorium_months + tenure_months
+    total_periods = tenure_months
 
     for i in range(total_periods):
         is_moratorium = i < moratorium_months
@@ -73,15 +112,15 @@ def build_monthly_schedule(
             # Interest accrues, no principal payment
             payment = 0.0
             principal_paid = 0.0
-            balance = opening + interest
+            balance = round(opening + interest, 2)
         else:
             payment = monthly_emi
             principal_paid = round(min(balance, max(0.0, payment - interest)), 2)
             balance = round(max(0.0, balance - principal_paid), 2)
             # Last period adjustment to clear rounding residue
             if i == total_periods - 1 and balance > 0:
-                principal_paid += balance
-                payment = principal_paid + interest
+                principal_paid = round(principal_paid + balance, 2)
+                payment = round(principal_paid + interest, 2)
                 balance = 0.0
 
         period_num = i + 1
@@ -135,35 +174,75 @@ def build_quarterly_schedule(
 
 class FinancialEngine:
     """
-    Core financial engine.
-    - Reads scheme rules from database.
-    - Computes project cost, loan amount, EMI, and full amortization.
+    Core financial engine implementing SIH PS 26091.
+    - Reads scheme rules from database with offline deterministic fallback.
+    - Selects Micro Finance (<= ₹1.40L) or Term Loan (<= ₹50L).
+    - Enforces ineligibility (> ₹50L).
+    - Computes project cost, loan amount, EMI, and full amortization schedule.
     - Persists calculation snapshot.
     """
 
     async def get_all_schemes(self, db: AsyncSession) -> list[SchemeRule]:
-        result = await db.execute(
-            select(SchemeRule)
-            .where(SchemeRule.is_active == True)  # noqa: E712
-            .order_by(SchemeRule.min_project_cost)
-        )
-        return list(result.scalars().all())
+        try:
+            result = await db.execute(
+                select(SchemeRule)
+                .where(SchemeRule.is_active == True)  # noqa: E712
+                .order_by(SchemeRule.min_project_cost)
+            )
+            schemes = [s for s in result.scalars().all() if isinstance(s, SchemeRule)]
+            if len(schemes) == 2:
+                return schemes
+        except Exception as e:
+            logger.warning("DB scheme query failed (%s), returning default schemes", e)
+        return [DEFAULT_MICRO_FINANCE_SCHEME, DEFAULT_TERM_LOAN_SCHEME]
 
     async def select_scheme(
-        self, project_cost: float, db: AsyncSession
+        self, project_cost: float, db: AsyncSession | None = None
     ) -> SchemeRule | None:
-        """Select the best matching scheme for a given project cost."""
-        result = await db.execute(
-            select(SchemeRule)
-            .where(
-                SchemeRule.is_active == True,  # noqa: E712
-                SchemeRule.min_project_cost <= project_cost,
-                SchemeRule.max_project_cost >= project_cost,
-            )
-            .order_by(SchemeRule.annual_interest_rate)
-            .limit(1)
+        """Select the matching SIH PS 26091 scheme for a given project cost."""
+        if project_cost > 5000000.0:
+            return None
+
+        target_code = (
+            "NBCFDC_MICRO_FINANCE" if project_cost <= 140000.0 else "NBCFDC_TERM_LOAN"
         )
-        return result.scalar_one_or_none()
+        if db is not None:
+            try:
+                result = await db.execute(
+                    select(SchemeRule)
+                    .where(
+                        SchemeRule.is_active == True,  # noqa: E712
+                        SchemeRule.scheme_code == target_code,
+                        SchemeRule.min_project_cost <= project_cost,
+                        SchemeRule.max_project_cost >= project_cost,
+                    )
+                    .limit(1)
+                )
+                scheme = result.scalar_one_or_none()
+                if isinstance(scheme, SchemeRule):
+                    return scheme
+
+                # Secondary lookup by scheme_code if cost boundary check was slightly off
+                result = await db.execute(
+                    select(SchemeRule)
+                    .where(
+                        SchemeRule.is_active == True,  # noqa: E712
+                        SchemeRule.scheme_code == target_code,
+                    )
+                    .limit(1)
+                )
+                scheme = result.scalar_one_or_none()
+                if isinstance(scheme, SchemeRule):
+                    return scheme
+            except Exception as e:
+                logger.warning("DB select_scheme query failed (%s), using default rule", e)
+
+        # Fallback selection according to SIH PS 26091
+        if project_cost <= 140000.0:
+            return DEFAULT_MICRO_FINANCE_SCHEME
+        elif project_cost <= 5000000.0:
+            return DEFAULT_TERM_LOAN_SCHEME
+        return None
 
     async def calculate(
         self,
@@ -175,56 +254,37 @@ class FinancialEngine:
         """
         Full financial calculation pipeline.
         1. Derive project cost (margin / 10%)
-        2. Select matching scheme
-        3. Compute EMI and full amortization schedule
-        4. Persist to DB
+        2. Validate eligibility (<= ₹50 Lakh)
+        3. Select matching scheme (Micro Finance <= ₹1.40L, Term Loan <= ₹50L)
+        4. Compute EMI and full amortization schedule (moratorium inside total tenure)
+        5. Compute totals without double-counting interest
+        6. Persist to DB (if available)
         """
-        # Step 1: Derive project cost
+        # Step 1: Derive project cost (Rule 2: Project Cost = Margin / 0.10)
         raw_project_cost = margin_capital / 0.10
-        # Round to nearest 100
-        project_cost = _round_inr(raw_project_cost, 100)
+        project_cost = round(raw_project_cost, 2)
 
-        # Step 2: Select scheme
-        scheme = None
-        try:
-            scheme = await self.select_scheme(project_cost, db)
-            if scheme is None:
-                result = await db.execute(
-                    select(SchemeRule)
-                    .where(SchemeRule.is_active == True)  # noqa: E712
-                    .order_by(SchemeRule.max_project_cost.desc())
-                    .limit(1)
-                )
-                scheme = result.scalar_one_or_none()
-        except Exception as e:
-            logger.warning("DB scheme query failed (%s), using default NBCFDC scheme", e)
-
-        if scheme is None:
-            # Fallback NBCFDC Scheme
-            scheme = SchemeRule(
-                scheme_id=uuid.uuid4(),
-                scheme_code="NBCFDC_GENERAL_TERM",
-                scheme_name="NBCFDC General Term Loan (Term Loan)",
-                category="Term Loan",
-                min_project_cost=50000,
-                max_project_cost=1500000,
-                loan_percentage=90.0,
-                max_loan_amount=1350000,
-                annual_interest_rate=6.0,
-                tenure_months=60,
-                moratorium_months=6,
-                repayment_frequency="monthly",
-                moratorium_interest_policy="paid_separately",
-                version=1,
+        # Step 2: Validate eligibility limit (SIH PS 26091: > ₹50L is not eligible)
+        if project_cost > 5000000.0:
+            raise ValueError(
+                f"Project cost of ₹{project_cost:,.2f} (derived from margin ₹{margin_capital:,.2f}) "
+                f"exceeds the maximum eligible limit of ₹50.00 Lakh. Not eligible under supported NBCFDC schemes."
             )
 
-        # Step 3: Compute loan amounts
+        # Step 3: Select scheme
+        scheme = await self.select_scheme(project_cost, db)
+        if scheme is None:
+            raise ValueError(
+                f"No eligible scheme found for project cost of ₹{project_cost:,.2f}."
+            )
+
+        # Step 4: Compute loan amounts
         theoretical_loan = project_cost * (float(scheme.loan_percentage) / 100)
         eligible_loan = min(theoretical_loan, float(scheme.max_loan_amount))
         required_margin = project_cost - eligible_loan
         funding_gap = max(0.0, required_margin - margin_capital)
 
-        # Step 4: EMI calculation
+        # Step 5: EMI calculation
         annual_rate = float(scheme.annual_interest_rate)
         tenure_months = scheme.tenure_months
         moratorium_months = scheme.moratorium_months
@@ -232,63 +292,77 @@ class FinancialEngine:
         monthly_emi = calculate_emi(eligible_loan, annual_rate, tenure_months, moratorium_months)
         quarterly_payment = round(monthly_emi * 3, 2)
 
-        # Step 5: Build schedules
+        # Step 6: Build schedules within total tenure
         monthly_schedule = build_monthly_schedule(
             eligible_loan, annual_rate, tenure_months, moratorium_months, monthly_emi
         )
         quarterly_schedule = build_quarterly_schedule(monthly_schedule)
 
-        # Step 6: Totals
+        # Step 7: Totals (Total interest = Total repayment - Loan amount)
         total_repayment = round(sum(p.payment for p in monthly_schedule), 2)
         moratorium_interest = round(
             sum(p.interest for p in monthly_schedule if p.is_moratorium), 2
         )
-        total_interest = round(total_repayment - eligible_loan + moratorium_interest, 2)
+        total_interest = round(total_repayment - eligible_loan, 2)
 
-        # Step 7: Persist to DB (optional if DB is connected)
-        calc_id = uuid.uuid4()
-        try:
-            calc = FinancialCalculation(
-                id=calc_id,
-                user_id=user_id,
-                location_id=village_lgd_code,
-                scheme_id=scheme.scheme_id,
-                available_margin=margin_capital,
-                raw_project_cost=raw_project_cost,
-                project_cost=project_cost,
-                theoretical_loan=theoretical_loan,
-                eligible_loan=eligible_loan,
-                required_margin=required_margin,
-                funding_gap=funding_gap,
-                annual_interest_rate=annual_rate,
-                tenure_months=tenure_months,
-                moratorium_months=moratorium_months,
-                moratorium_interest_mode=scheme.moratorium_interest_policy,
-                monthly_emi=monthly_emi,
-                quarterly_payment=quarterly_payment,
-                rules_version=scheme.version,
-            )
-            db.add(calc)
-
-            for period in monthly_schedule[:24]:
-                db.add(
-                    RepaymentScheduleEntry(
-                        calculation_id=calc.id,
-                        period_number=period.period_number,
-                        period_type="month",
-                        opening_balance=period.opening_balance,
-                        payment=period.payment,
-                        principal_component=period.principal,
-                        interest_component=period.interest,
-                        closing_balance=period.closing_balance,
-                    )
+        # Step 8: Persist to DB (only if a valid DB scheme was resolved and db session is provided)
+        is_db_scheme = (
+            db is not None
+            and scheme.scheme_id not in {
+                DEFAULT_MICRO_FINANCE_SCHEME.scheme_id,
+                DEFAULT_TERM_LOAN_SCHEME.scheme_id,
+            }
+        )
+        if is_db_scheme:
+            calc_id = uuid.uuid4()
+            try:
+                calc = FinancialCalculation(
+                    id=calc_id,
+                    user_id=user_id,
+                    location_id=village_lgd_code,
+                    scheme_id=scheme.scheme_id,
+                    available_margin=margin_capital,
+                    raw_project_cost=raw_project_cost,
+                    project_cost=project_cost,
+                    theoretical_loan=theoretical_loan,
+                    eligible_loan=eligible_loan,
+                    required_margin=required_margin,
+                    funding_gap=funding_gap,
+                    annual_interest_rate=annual_rate,
+                    tenure_months=tenure_months,
+                    moratorium_months=moratorium_months,
+                    moratorium_interest_mode=scheme.moratorium_interest_policy,
+                    monthly_emi=monthly_emi,
+                    quarterly_payment=quarterly_payment,
+                    rules_version=scheme.version,
                 )
-            await db.flush()
-        except Exception as e:
-            logger.warning("DB calculation persistence skipped: %s", e)
+                db.add(calc)
+
+                for period in monthly_schedule[:24]:
+                    db.add(
+                        RepaymentScheduleEntry(
+                            calculation_id=calc_id,
+                            period_number=period.period_number,
+                            period_type="month",
+                            opening_balance=period.opening_balance,
+                            payment=period.payment,
+                            principal_component=period.principal,
+                            interest_component=period.interest,
+                            closing_balance=period.closing_balance,
+                        )
+                    )
+                await db.flush()
+            except Exception as e:
+                logger.warning("Financial calculation DB persistence skipped: %s", e)
+        else:
+            calc_id = uuid.uuid4()
+            logger.info(
+                "Financial calculation DB persistence skipped: scheme '%s' is an in-memory fallback without a database record",
+                scheme.scheme_code,
+            )
 
         return FinancialCalculationResponse(
-            calculation_id=str(calc.id),
+            calculation_id=str(calc_id),
             available_margin=margin_capital,
             project_cost=project_cost,
             theoretical_loan=theoretical_loan,

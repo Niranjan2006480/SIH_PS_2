@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import L from "leaflet";
+import type L from "leaflet";
 import type { AnalysisResponse, CompetitorItem } from "@/lib/api-client";
 import { MapPin, Navigation, Layers, ShieldAlert, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,132 +19,150 @@ export function CompetitorMap({ report }: Props) {
   const competitors = report.competitors.items ?? [];
 
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    if (typeof window === "undefined" || !mapContainerRef.current) return;
 
-    // Destroy existing instance if present
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
+    let isMounted = true;
 
-    // Default zoom based on radius
-    const initialZoom = report.radius_km > 5 ? 12 : 13;
+    async function initMap() {
+      // Destroy existing instance if present
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
 
-    // Create Map instance
-    const map = L.map(mapContainerRef.current, {
-      center: [centerLat, centerLon],
-      zoom: initialZoom,
-      scrollWheelZoom: false,
-    });
-    mapInstanceRef.current = map;
+      const leafletModule = await import("leaflet");
+      if (!isMounted || !mapContainerRef.current) return;
+      const L = leafletModule.default || leafletModule;
 
-    // Crisp high-performance basemap
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 19,
-    }).addTo(map);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
 
-    // 1. Add Catchment Radius Buffer Rings
-    L.circle([centerLat, centerLon], {
-      radius: 5000,
-      color: "#275634",
-      fillColor: "#275634",
-      fillOpacity: 0.05,
-      weight: 1.5,
-      dashArray: "4, 6",
-    })
-      .bindTooltip("5 km Primary Catchment", { permanent: false, direction: "top" })
-      .addTo(map);
+      // Default zoom based on radius
+      const initialZoom = report.radius_km > 5 ? 12 : 13;
 
-    if (report.radius_km >= 10) {
+      // Create Map instance
+      const map = L.map(mapContainerRef.current, {
+        center: [centerLat, centerLon],
+        zoom: initialZoom,
+        scrollWheelZoom: false,
+      });
+      mapInstanceRef.current = map;
+
+      // OpenStreetMap basemap
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      // 1. Add Catchment Radius Buffer Rings
       L.circle([centerLat, centerLon], {
-        radius: 10000,
-        color: "#b47828",
-        fillColor: "#b47828",
-        fillOpacity: 0.03,
+        radius: 5000,
+        color: "#275634",
+        fillColor: "#275634",
+        fillOpacity: 0.05,
         weight: 1.5,
-        dashArray: "4, 8",
+        dashArray: "4, 6",
       })
-        .bindTooltip("10 km Extended Catchment", { permanent: false, direction: "top" })
+        .bindTooltip("5 km Primary Catchment", { permanent: false, direction: "top" })
         .addTo(map);
-    }
 
-    // 2. Add Center Marker (Proposed Location)
-    const centerIcon = L.divIcon({
-      className: "custom-center-pin",
-      html: `
-        <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;">
-          <div style="position: absolute; width: 34px; height: 34px; border-radius: 9999px; background-color: rgba(39, 86, 52, 0.25); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-          <div style="width: 28px; height: 28px; border-radius: 9999px; background-color: #275634; border: 2px solid #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: bold; font-size: 13px;">
-            ★
-          </div>
-        </div>
-      `,
-      iconSize: [34, 34],
-      iconAnchor: [17, 17],
-    });
+      if (report.radius_km >= 10) {
+        L.circle([centerLat, centerLon], {
+          radius: 10000,
+          color: "#b47828",
+          fillColor: "#b47828",
+          fillOpacity: 0.03,
+          weight: 1.5,
+          dashArray: "4, 8",
+        })
+          .bindTooltip("10 km Extended Catchment", { permanent: false, direction: "top" })
+          .addTo(map);
+      }
 
-    const centerMarker = L.marker([centerLat, centerLon], { icon: centerIcon }).addTo(map);
-    centerMarker.bindPopup(`
-      <div style="font-family: inherit; padding: 2px;">
-        <div style="font-size: 13px; font-weight: bold; color: #1a1a1a;">${report.village_name}</div>
-        <div style="font-size: 11px; color: #275634; font-weight: 600; margin-top: 2px;">Proposed Enterprise Center</div>
-        <div style="font-size: 10px; color: #666; margin-top: 4px;">Taluka & District: ${report.district_name}</div>
-        <div style="font-size: 10px; color: #666;">Analysis radius: ${report.radius_km} km</div>
-      </div>
-    `);
-
-    // 3. Add Competitor Markers
-    const markers: Record<string, L.Marker> = {};
-
-    competitors.forEach((item, index) => {
-      const lat = item.latitude ?? (centerLat + (index + 1) * 0.012);
-      const lon = item.longitude ?? (centerLon + (index + 1) * 0.012);
-
-      const isHigh = item.strength === "High";
-      const isEmerging = item.strength === "Emerging";
-      const markerColor = isHigh ? "#a03228" : isEmerging ? "#475569" : "#b47828";
-      const markerLabel = (index + 1).toString();
-
-      const compIcon = L.divIcon({
-        className: `custom-comp-pin-${index}`,
+      // 2. Add Center Marker (Proposed Location)
+      const centerIcon = L.divIcon({
+        className: "custom-center-pin",
         html: `
-          <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; cursor: pointer;">
-            <div style="width: 24px; height: 24px; border-radius: 9999px; background-color: ${markerColor}; border: 2px solid #ffffff; box-shadow: 0 3px 5px -1px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: bold; font-size: 10px; font-family: monospace;">
-              ${markerLabel}
+          <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;">
+            <div style="position: absolute; width: 34px; height: 34px; border-radius: 9999px; background-color: rgba(39, 86, 52, 0.25); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="width: 28px; height: 28px; border-radius: 9999px; background-color: #275634; border: 2px solid #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: bold; font-size: 13px;">
+              ★
             </div>
           </div>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
       });
 
-      const compMarker = L.marker([lat, lon], { icon: compIcon }).addTo(map);
-      compMarker.bindPopup(`
-        <div style="font-family: inherit; min-width: 170px; padding: 3px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-            <span style="font-size: 12px; font-weight: bold; color: #1a1a1a;">${item.name}</span>
-            <span style="font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background-color: ${markerColor}20; color: ${markerColor};">${item.strength || "Moderate"}</span>
-          </div>
-          <div style="font-size: 11px; color: #444; margin-top: 3px;">${item.category}</div>
-          <div style="font-size: 11px; font-weight: 600; color: #275634; margin-top: 3px;">📍 ${item.distance_km} km away</div>
-          ${item.offering ? `<div style="font-size: 10px; color: #666; margin-top: 5px; border-top: 1px solid #eee; padding-top: 4px;">${item.offering}</div>` : ""}
+      const centerMarker = L.marker([centerLat, centerLon], { icon: centerIcon }).addTo(map);
+      centerMarker.bindPopup(`
+        <div style="font-family: inherit; padding: 2px;">
+          <div style="font-size: 13px; font-weight: bold; color: #1a1a1a;">${report.village_name}</div>
+          <div style="font-size: 11px; color: #275634; font-weight: 600; margin-top: 2px;">Proposed Enterprise Center</div>
+          <div style="font-size: 10px; color: #666; margin-top: 4px;">Taluka & District: ${report.district_name}</div>
+          <div style="font-size: 10px; color: #666;">Analysis radius: ${report.radius_km} km</div>
         </div>
       `);
 
-      compMarker.on("click", () => {
-        setSelectedCompetitor(item.name);
+      // 3. Add Competitor Markers
+      const markers: Record<string, L.Marker> = {};
+
+      competitors.forEach((item, index) => {
+        const lat = item.latitude ?? (centerLat + (index + 1) * 0.012);
+        const lon = item.longitude ?? (centerLon + (index + 1) * 0.012);
+
+        const isHigh = item.strength === "High";
+        const isEmerging = item.strength === "Emerging";
+        const markerColor = isHigh ? "#a03228" : isEmerging ? "#475569" : "#b47828";
+        const markerLabel = (index + 1).toString();
+
+        const compIcon = L.divIcon({
+          className: `custom-comp-pin-${index}`,
+          html: `
+            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; cursor: pointer;">
+              <div style="width: 24px; height: 24px; border-radius: 9999px; background-color: ${markerColor}; border: 2px solid #ffffff; box-shadow: 0 3px 5px -1px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: bold; font-size: 10px; font-family: monospace;">
+                ${markerLabel}
+              </div>
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+
+        const compMarker = L.marker([lat, lon], { icon: compIcon }).addTo(map);
+        compMarker.bindPopup(`
+          <div style="font-family: inherit; min-width: 170px; padding: 3px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+              <span style="font-size: 12px; font-weight: bold; color: #1a1a1a;">${item.name}</span>
+              <span style="font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background-color: ${markerColor}20; color: ${markerColor};">${item.strength || "Moderate"}</span>
+            </div>
+            <div style="font-size: 11px; color: #444; margin-top: 3px;">${item.category}</div>
+            <div style="font-size: 11px; font-weight: 600; color: #275634; margin-top: 3px;">📍 ${item.distance_km} km away</div>
+            ${item.offering ? `<div style="font-size: 10px; color: #666; margin-top: 5px; border-top: 1px solid #eee; padding-top: 4px;">${item.offering}</div>` : ""}
+          </div>
+        `);
+
+        compMarker.on("click", () => {
+          setSelectedCompetitor(item.name);
+        });
+
+        markers[item.name] = compMarker;
       });
 
-      markers[item.name] = compMarker;
-    });
+      markersRef.current = markers;
+    }
 
-    markersRef.current = markers;
+    initMap();
 
     return () => {
-      map.remove();
-      mapInstanceRef.current = null;
+      isMounted = false;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
   }, [centerLat, centerLon, report.radius_km, report.village_name, report.district_name, competitors]);
 

@@ -75,12 +75,13 @@ class RAGRetriever:
             query_vector = await self.embed_text(query)
 
             # Build filter: prefer documents matching the category or state
-            results = await self.client.search(
+            response = await self.client.query_points(
                 collection_name=settings.qdrant_collection_name,
-                query_vector=query_vector,
+                query=query_vector,
                 limit=top_k,
                 with_payload=True,
             )
+            results = response.points
 
             if not results:
                 return self._fallback_context(business_category)

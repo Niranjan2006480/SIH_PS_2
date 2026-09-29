@@ -81,46 +81,39 @@ class AIOrchestrator:
             rag_context=rag_context,
         )
 
-        # Step 3: Call Gemini with fallback models
-        models_to_try = list(dict.fromkeys([
-            settings.gemini_model,
-            "gemini-2.5-flash",
-            "gemini-3.6-flash",
-            "gemini-flash-latest",
-        ]))
+        # Step 3: Call Gemini model (only configured model, immediate fallback to rule-based engine on 429 quota or failure)
+        try:
+            logger.info(
+                "Calling Gemini model %s for village=%s category=%s idea='%s'",
+                settings.gemini_model,
+                market_ctx.village_lgd_code,
+                request_data["business_category"],
+                request_data.get("business_idea", "")[:30],
+            )
+            model = self._model or genai.GenerativeModel(
+                model_name=settings.gemini_model,
+                generation_config=genai.GenerationConfig(
+                    temperature=settings.gemini_temperature,
+                    max_output_tokens=settings.gemini_max_output_tokens,
+                    response_mime_type="application/json",
+                ),
+            )
+            response = model.generate_content(prompt)
+            raw_text = response.text
+            analysis = self._parse_json_response(raw_text)
 
-        last_error = None
-        for model_name in models_to_try:
-            try:
-                logger.info(
-                    "Calling Gemini model %s for village=%s category=%s idea='%s'",
-                    model_name,
-                    market_ctx.village_lgd_code,
-                    request_data["business_category"],
-                    request_data.get("business_idea", "")[:30],
-                )
-                m = genai.GenerativeModel(
-                    model_name=model_name,
-                    generation_config=genai.GenerationConfig(
-                        temperature=settings.gemini_temperature,
-                        max_output_tokens=settings.gemini_max_output_tokens,
-                        response_mime_type="application/json",
-                    ),
-                )
-                response = m.generate_content(prompt)
-                raw_text = response.text
-                analysis = self._parse_json_response(raw_text)
+            # Step 4: Override population values with DB values
+            analysis["market"]["population_5km"] = market_ctx.population_5km
+            analysis["market"]["population_10km"] = market_ctx.population_10km
+            return analysis
+        except Exception as e:
+            logger.warning(
+                "Gemini model %s failed (%s); immediately falling back to rule-based engine",
+                settings.gemini_model,
+                e,
+            )
+            return self._generate_fallback_analysis(request_data, market_ctx, category_display_name)
 
-                # Step 4: Override population values with DB values
-                analysis["market"]["population_5km"] = market_ctx.population_5km
-                analysis["market"]["population_10km"] = market_ctx.population_10km
-                return analysis
-            except Exception as e:
-                last_error = e
-                logger.warning("Gemini model %s failed: %s", model_name, e)
-
-        logger.warning("All Gemini model attempts failed (%s), falling back to rule-based engine", last_error)
-        return self._generate_fallback_analysis(request_data, market_ctx, category_display_name)
 
     def _build_prompt(
         self,
@@ -362,7 +355,7 @@ class AIOrchestrator:
                 ],
             },
             "recommendation": {
-                "label": "Strongly Recommended",
+                "label": "High Feasibility",
                 "summary": f"{category_display_name} in {v_name} is financially viable with high market absorption and rapid 14-month payback period under government concessional credit schemes.",
                 "key_actions": [
                     "Apply for NBCFDC / MSME credit scheme through local district cooperative bank.",

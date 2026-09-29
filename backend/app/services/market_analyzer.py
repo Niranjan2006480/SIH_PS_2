@@ -239,35 +239,63 @@ class MarketAnalyzer:
         lon: Optional[float],
         db: AsyncSession,
     ) -> tuple[int, int]:
-        """Query total population within 5km and 10km radius using PostGIS ST_DWithin."""
-        if lat is None or lon is None:
+        """Query total population within 5km and 10km radius using PostGIS ST_DWithin or actual village population."""
+        # 1. Query the actual population_stats record for the selected village
+        village_pop: Optional[int] = None
+        try:
             pop_stmt = (
                 select(PopulationStats.total_population)
                 .where(PopulationStats.village_lgd_code == village_lgd_code)
                 .limit(1)
             )
             pop_result = await db.execute(pop_stmt)
-            pop = pop_result.scalar_one_or_none() or 2500
-            return int(pop * 2.5), int(pop * 7.5)
+            village_pop = pop_result.scalar_one_or_none()
+        except Exception as e:
+            logger.debug("Failed to query village population_stats: %s", e)
 
-        try:
-            sql_query = text(
-                """
-                SELECT
-                    SUM(CASE WHEN ST_DWithin(l.geom::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, 5000) THEN ps.total_population ELSE 0 END) AS pop_5km,
-                    SUM(CASE WHEN ST_DWithin(l.geom::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, 10000) THEN ps.total_population ELSE 0 END) AS pop_10km
-                FROM locations l
-                JOIN population_stats ps ON l.village_lgd_code = ps.village_lgd_code
-                WHERE ps.district_lgd_code = :district_lgd_code
-                """
-            )
-            result = await db.execute(sql_query, {"lat": lat, "lon": lon, "district_lgd_code": district_lgd_code})
-            row = result.one_or_none()
-            if row and row.pop_5km is not None and row.pop_5km > 0:
-                return int(row.pop_5km), int(row.pop_10km)
-        except Exception:
-            pass
+        # 2. If coordinates are available, attempt PostGIS radius calculation
+        if lat is not None and lon is not None:
+            try:
+                sql_query = text(
+                    """
+                    SELECT
+                        SUM(CASE WHEN ST_DWithin(l.geom::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, 5000)
+                                 AND (l.village_lgd_code = :village_lgd_code OR l.latitude != :lat OR l.longitude != :lon)
+                            THEN ps.total_population ELSE 0 END) AS pop_5km,
+                        SUM(CASE WHEN ST_DWithin(l.geom::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, 10000)
+                                 AND (l.village_lgd_code = :village_lgd_code OR l.latitude != :lat OR l.longitude != :lon)
+                            THEN ps.total_population ELSE 0 END) AS pop_10km
+                    FROM locations l
+                    JOIN population_stats ps ON l.village_lgd_code = ps.village_lgd_code
+                    WHERE ps.district_lgd_code = :district_lgd_code
+                    """
+                )
+                result = await db.execute(
+                    sql_query,
+                    {
+                        "lat": lat,
+                        "lon": lon,
+                        "district_lgd_code": district_lgd_code,
+                        "village_lgd_code": village_lgd_code,
+                    },
+                )
+                row = result.one_or_none()
+                if row and row.pop_5km is not None and row.pop_5km > 0:
+                    pop_5 = int(row.pop_5km)
+                    pop_10 = int(row.pop_10km) if row.pop_10km is not None else pop_5
+                    if village_pop:
+                        pop_5 = max(pop_5, village_pop)
+                    if pop_10 <= pop_5 and village_pop:
+                        pop_10 = max(pop_5, int(village_pop * 2.5))
+                    return pop_5, pop_10
+            except Exception as ex:
+                logger.debug("PostGIS radius query failed: %s", ex)
 
+        # 3. If PostGIS query returned no result, but we have actual village population:
+        if village_pop is not None and village_pop > 0:
+            return int(village_pop * 2.5), int(village_pop * 7.5)
+
+        # 4. Fallback when no database population data exists
         return 6200, 18500
 
     async def _count_competitors(

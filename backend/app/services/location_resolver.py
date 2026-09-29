@@ -22,13 +22,13 @@ logger = logging.getLogger(__name__)
 FALLBACK_VILLAGES = [
     {
         "village_lgd_code": "550001",
-        "village_name": "Adegaon",
-        "subdistrict_name": "Chamorshi",
-        "district_name": "Gadchiroli",
+        "village_name": "Mulher",
+        "subdistrict_name": "Baglan",
+        "district_name": "Nashik",
         "state_name": "Maharashtra",
         "state_code": "27",
-        "latitude": 19.8921,
-        "longitude": 79.9142,
+        "latitude": 20.7819,
+        "longitude": 74.0638,
     },
     {
         "village_lgd_code": "550002",
@@ -148,26 +148,25 @@ class LocationResolver:
             result = await db.execute(stmt)
             rows = result.all()
 
-            if rows:
-                villages = [
-                    VillageResult(
-                        village_lgd_code=row.Village.village_lgd_code,
-                        village_name=row.Village.village_name,
-                        subdistrict_name=row.subdistrict_name,
-                        district_name=row.district_name,
-                        state_name=row.state_name,
-                        state_code=row.Village.state_code,
-                        latitude=row.latitude,
-                        longitude=row.longitude,
-                        has_coordinates=row.latitude is not None,
-                    )
-                    for row in rows
-                ]
-                return LocationSearchResponse(
-                    results=villages,
-                    total=len(villages),
-                    query=query,
+            villages = [
+                VillageResult(
+                    village_lgd_code=row.Village.village_lgd_code,
+                    village_name=row.Village.village_name,
+                    subdistrict_name=row.subdistrict_name,
+                    district_name=row.district_name,
+                    state_name=row.state_name,
+                    state_code=row.Village.state_code,
+                    latitude=row.latitude,
+                    longitude=row.longitude,
+                    has_coordinates=row.latitude is not None,
                 )
+                for row in rows
+            ]
+            return LocationSearchResponse(
+                results=villages,
+                total=len(villages),
+                query=query,
+            )
         except Exception as e:
             logger.warning("DB search failed (%s), using local fallback dataset", e)
 

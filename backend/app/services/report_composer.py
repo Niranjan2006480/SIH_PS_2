@@ -324,7 +324,7 @@ class ReportComposer:
             ),
             recommendation=RecommendationData(
                 label=safe_get(ai_rec, "label", "Proceed — with modifications"),
-                title=safe_get(ai_rec, "title", f"Viable micro-enterprise plan for {request.village_name}"),
+                title=safe_get(ai_rec, "title", f"High-feasibility micro-enterprise plan for {request.village_name}"),
                 detail=safe_get(ai_rec, "detail", f"Target local households in {request.village_name} and leverage NBCFDC scheme credit."),
                 reserve=safe_get(ai_rec, "reserve", request.margin_capital * 0.2),
                 checklist=safe_get(ai_rec, "checklist", [
