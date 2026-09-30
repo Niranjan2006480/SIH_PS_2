@@ -67,9 +67,18 @@ def create_app() -> FastAPI:
     )
 
     # ── CORS ─────────────────────────────────────────────────────────────────
+    allowed_origins = [
+        "https://udyamai-debug-thungs.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        *[o for o in settings.origins_list if o and o != "*"],
+    ]
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.origins_list,
+        allow_origins=list(dict.fromkeys(allowed_origins)),
         allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|172\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+)(:\d+)?$",
         allow_credentials=True,
         allow_methods=["*"],
